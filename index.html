@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Measurement Arrow App</title>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        .side-menu {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            background-color: #fff;
+            height: 100vh;
+            box-sizing: border-box;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100; /* Ensure menu stays above canvas area */
+        }
+
+        .mode-section {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .params-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .menu-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .menu-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .menu-item {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        input[type="number"],
+        input[type="color"],
+        select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            margin-left: 300px;
+            height: 100vh;
+            position: relative; /* Change from fixed to relative */
+            overflow: auto; /* Make container scrollable */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .canvas-wrapper {
+            min-width: min-content; /* Ensure wrapper is at least as wide as canvas */
+            min-height: min-content; /* Ensure wrapper is at least as tall as canvas */
+            padding: 20px; /* Add some padding around canvas */
+        }
+
+        canvas {
+            border: 1px solid #000;
+            background: white;
+            display: block; /* Remove any extra space below canvas */
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mode-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: #eee;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .mode-button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        /* Add styles for mode-specific params */
+        .draw-params,
+        .measure-params {
+            display: none;
+        }
+
+        .draw-params.active,
+        .measure-params.active {
+            display: block;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .footer a {
+            text-decoration: none;
+            color: #666;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="side-menu">
+        <div class="mode-section">
+            <div class="mode-buttons">
+                <button id="drawMode" class="mode-button">Draw</button>
+                <button id="measureMode" class="mode-button active">Measure</button>
+            </div>
+        </div>
+
+        <div class="params-container">
+            <!-- Drawing Parameters -->
+            <div class="draw-params">
+                <div class="menu-section">
+                    <h3>Drawing Settings</h3>
+                    <div class="menu-item">
+                        <label for="drawColor">Color</label>
+                        <input type="color" id="drawColor" value="#000000">
+                    </div>
+                    <div class="menu-item">
+                        <label for="drawThickness">Thickness</label>
+                        <input type="number" id="drawThickness" value="1" min="1" max="20">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Measurement Parameters -->
+            <div class="measure-params active">
+                <div class="menu-section">
+                    <h3>Pilar Lines</h3>
+                    <div class="menu-item">
+                        <label for="pilarHeight">Height</label>
+                        <input type="number" id="pilarHeight" value="50">
+                    </div>
+                    <div class="menu-item">
+                        <label for="pilarThickness">Thickness</label>
+                        <input type="number" id="pilarThickness" value="1">
+                    </div>
+                    <div class="menu-item">
+                        <label for="pilarColor">Color</label>
+                        <input type="color" id="pilarColor" value="#000000">
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>Distance Line</h3>
+                    <div class="menu-item">
+                        <label for="distanceOffset">Offset from Point</label>
+                        <input type="number" id="distanceOffset" value="20">
+                    </div>
+                    <div class="menu-item">
+                        <label for="distanceThickness">Thickness</label>
+                        <input type="number" id="distanceThickness" value="1">
+                    </div>
+                    <div class="menu-item">
+                        <label for="distanceColor">Color</label>
+                        <input type="color" id="distanceColor" value="#000000">
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>Text</h3>
+                    <div class="menu-item">
+                        <label for="textPosition">Position</label>
+                        <select id="textPosition">
+                            <option value="topLeft">Top Left</option>
+                            <option value="topCenter" selected>Top Center</option>
+                            <option value="topRight">Top Right</option>
+                            <option value="middleLeft">Middle Left</option>
+                            <option value="middleCenter">Middle Center</option>
+                            <option value="middleRight">Middle Right</option>
+                            <option value="bottomLeft">Bottom Left</option>
+                            <option value="bottomCenter">Bottom Center</option>
+                            <option value="bottomRight">Bottom Right</option>
+                        </select>
+                    </div>
+                    <div class="menu-item">
+                        <label for="textAlign">Alignment</label>
+                        <select id="textAlign">
+                            <option value="inside">Inside</option>
+                            <option value="outside">Outside</option>
+                            <option value="center" selected>Center</option>
+                        </select>
+                    </div>
+                    <div class="menu-item">
+                        <label for="textColor">Color</label>
+                        <input type="color" id="textColor" value="#000000">
+                    </div>
+                    <div class="menu-item">
+                        <label for="textSize">Size</label>
+                        <input type="number" id="textSize" value="12">
+                    </div>
+                    <div class="menu-item">
+                        <label for="textOffsetX">Offset X</label>
+                        <input type="number" id="textOffsetX" value="0">
+                    </div>
+                    <div class="menu-item">
+                        <label for="textOffsetY">Offset Y</label>
+                        <input type="number" id="textOffsetY" value="0">
+                    </div>
+                    <div class="menu-item">
+                        <label for="textRotation">Rotation (degrees)</label>
+                        <input type="number" id="textRotation" value="0">
+                    </div>
+                    <div class="menu-item">
+                        <label for="textContent">Custom Text</label>
+                        <input type="text" id="textContent" placeholder="Leave empty for distance">
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>Arrows</h3>
+                    <div class="menu-item">
+                        <label for="arrowPosition">Position</label>
+                        <select id="arrowPosition">
+                            <option value="inside">Inside</option>
+                            <option value="outside" selected>Outside</option>
+                        </select>
+                    </div>
+                    <div class="menu-item">
+                        <label for="arrowThickness">Thickness</label>
+                        <input type="number" id="arrowThickness" value="2">
+                    </div>
+                    <div class="menu-item">
+                        <label for="arrowColor">Color</label>
+                        <input type="color" id="arrowColor" value="#000000">
+                    </div>
+                    <div class="menu-item">
+                        <label for="arrowFilled">Filled</label>
+                        <input type="checkbox" id="arrowFilled" checked>
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3>Line Extensions</h3>
+                    <div class="menu-item">
+                        <label for="startExtension">Start Extension</label>
+                        <input type="number" id="startExtension" value="20">
+                    </div>
+                    <div class="menu-item">
+                        <label for="endExtension">End Extension</label>
+                        <input type="number" id="endExtension" value="20">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
+            <canvas id="drawingCanvas" width="1000" height="700"></canvas>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <a href="https://github.com/drhootch/canvas-measurement-arrows-drawer" target="_blank">
+            © 2025 Hootch
+        </a>
+    </div>
+
+    <script type="module" src="drawMeasurementArrow.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
