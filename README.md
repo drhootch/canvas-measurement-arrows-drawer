@@ -20,7 +20,7 @@ A versatile JavaScript library and application for drawing customizable measurem
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/your-repo
+git clone https://github.com/drhootch/canvas-measurement-arrows-drawer
 ```
 
 2. Include the necessary files in your HTML:
